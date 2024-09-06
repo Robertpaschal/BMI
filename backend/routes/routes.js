@@ -61,7 +61,7 @@ router.post('/signup', AuthController.signup);
  *           schema:
  *             type: object
  *             properties:
- *               username:
+ *               email:
  *                 type: string
  *               password:
  *                 type: string
@@ -71,8 +71,42 @@ router.post('/signup', AuthController.signup);
  *       400:
  *         description: Error logging in
  *       401:
- *         description: Invalid credentials.
+ *         description: Unauthorized.
  */
 router.post('/login', AuthController.login);
+
+/**
+ * @swagger
+ * /refresh-token:
+ *   post:
+ *     summary: Refresh the authentication token
+ *     description: Refresh the user's token if it is about to expire.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: The current authentication token that is about to expire.
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: The new refreshed token.
+ *       400:
+ *         description: Error refreshing token, Bad Request.
+ *       401:
+ *         description: Unauthorized, invalid or expired token.
+ */
+router.post('/refresh-token', AuthController.refreshToken);
 
 module.exports = router;

@@ -1,10 +1,9 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { Op} = require('sequelize');
 const { isEmail } = require('validator'); 
-
-require('dotenv').config();
 
 class AuthController {
     static async signup(req, res) {
@@ -71,12 +70,40 @@ class AuthController {
             if (!user || !(await bcrypt.compare(password, user.password))) {
                 return res.status(401).json({ message: 'Invalid credentials' });
             }
+
+            if (!process.env.JWT_SECRET) {
+                throw new Error('JWT_SECRET is not defined in the environment variables');
+            }
+
             const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, 
-                { expiresIn: '1h' }
-            );
-            res.json({ token });
+                { expiresIn: '1h' });
+
+            const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET,
+                { expiresIn: '7d' });
+
+            res.json({ token, refreshToken });
         } catch (error) {
-            res.status(400).json({ message: 'Error logging in', error });
+            res.status(400).json({ message: 'Error logging in', error: error.message });
+        }
+    }
+
+    static async refreshToken(req, res) {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(401).json({ message: 'Refresh token is required' });
+        }
+
+        try {
+            if (!process.env.JWT_SECRET) {
+                throw new Error('JWT_SECRET is not defined in the environment variables');
+            }
+
+            const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+            const newToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+            res.json({ token: newToken });
+        } catch (error) {
+            res.status(403).json({ message: 'Invalid refresh token', error: error.message});
         }
     }
 }
