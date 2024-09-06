@@ -1,0 +1,45 @@
+{
+  "name": "bmi-backend",
+  "version": "1.0.0",
+  "main": "app.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint",
+    "check-lint": "lint *.js",
+    "start-server": "nodemon --exec babel-node --presets @babel/preset-env ./server.js",
+    "start-worker": "nodemon --exec babel-node --presets @babel/preset-env ./worker.js",
+    "dev": "nodemon --exec babel-node --presets @babel/preset-env",
+    "test": "./node_modules/.bin/mocha --require @babel/register --exit"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Odinaka Nnamani",
+    "email": "nnamani.odinakarobert@gmail.com"
+  },
+  "license": "ISC",
+  "description": "Backend for BMI application",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "redis": "^4.7.0",
+    "sequelize": "^6.37.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "chai-http": "^4.3.0",
+    "eslint": "^9.10.0",
+    "mocha": "^10.7.3",
+    "nodemon": "^3.1.4",
+    "sequelize-cli": "^6.6.2",
+    "sinon": "^18.0.0"
+  }
+}
