@@ -197,7 +197,7 @@ describe('User Authentication', () => {
             });
 
             expect(res).to.have.status(200);
-            expect(res.body).to.have.property('token');
+            expect(res.body).to.have.property('sessionToken');
             expect(res.body).to.have.property('refreshToken');
         });
 
@@ -228,7 +228,7 @@ describe('User Authentication', () => {
         });
 
         it('should return a new token on refresh', async function () {
-            this.timeout(2500);
+            this.timeout(10000);
 
             await User.create({
                 email: 'paschal@gmail.com',
@@ -250,19 +250,19 @@ describe('User Authentication', () => {
                 password: 'password',
             });
 
-            const { token, refreshToken } = loginRes.body;
+            const { sessionToken, refreshToken } = loginRes.body;
 
             function delay(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
-            await delay(2000);
+            await delay(4000);
 
             const refreshRes = await chai.request(app)
             .post('/refresh-token')
             .send({ refreshToken });
 
             expect(refreshRes).to.have.status(200);
-            expect(refreshRes.body.token).to.not.equal(token);
+            expect(refreshRes.body.sessionToken).to.not.equal(sessionToken);
         });
 
         it('should not refresh token with an invalid or expired refresh token', async () => {

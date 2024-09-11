@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { Op} = require('sequelize');
-const { isEmail } = require('validator'); 
+const { isEmail } = require('validator');
+const redisClient = require('../config/redis');
 
 class AuthController {
     static async signup(req, res) {
@@ -75,13 +76,16 @@ class AuthController {
                 throw new Error('JWT_SECRET is not defined in the environment variables');
             }
 
-            const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, 
+            const sessionToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, 
                 { expiresIn: '1h' });
 
             const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET,
                 { expiresIn: '7d' });
 
-            res.json({ token, refreshToken });
+            await redisClient.set(`sessionToken:${user.id}`, sessionToken, 3600);
+            await redisClient.set(`refreshToken:${user.id}`, refreshToken, 604800);
+
+            res.json({ sessionToken, refreshToken });
         } catch (error) {
             res.status(400).json({ message: 'Error logging in', error: error.message });
         }
@@ -89,6 +93,8 @@ class AuthController {
 
     static async refreshToken(req, res) {
         const { refreshToken } = req.body;
+        console.log(`Refresh token received for refresh: ${refreshToken}`);
+
         if (!refreshToken) {
             return res.status(401).json({ message: 'Refresh token is required' });
         }
@@ -98,14 +104,58 @@ class AuthController {
                 throw new Error('JWT_SECRET is not defined in the environment variables');
             }
 
+            // Verify and decode the refresh token
             const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-            const newToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            console.log(`Decoded refresh token: ${JSON.stringify(decoded)}`);
 
-            res.json({ token: newToken });
+            // Reconnect to Redis if needed
+            await redisClient.reconnect();
+
+            // Retrieve the stored refresh token from Redis
+            const storedRefreshToken = await redisClient.get(`refreshToken:${decoded.userId}`);
+            console.debug(`Stored refresh token for user ${decoded.userId}: ${storedRefreshToken}`);
+
+            // Check if the provided refresh token matches the stored token
+            if (storedRefreshToken !== refreshToken) {
+                console.log('Provided refresh token does not match stored refresh token');
+                return res.status(403).json({ message: 'Invalid refresh token' });
+            }
+
+            // Generate a new session token
+            const newToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            console.log(`Generated new session token: ${newToken}`);
+
+            // Store the new session token in Redis
+            await redisClient.set(`sessionToken:${decoded.userId}`, newToken, 3600);
+            console.log(`New session token stored in Redis for user ${decoded.userId}`);
+
+            // Respond with the new session token
+            res.json({ sessionToken: newToken });
         } catch (error) {
-            res.status(403).json({ message: 'Invalid refresh token', error: error.message});
+            console.log('Error during refresh token process:', error.message);
+            res.status(403).json({ message: 'Invalid refresh token', error: error.message });
         }
     }
+
+    static async logout(req, res) {
+        const { sessionToken, refreshToken } = req.body;
+        if (!sessionToken || !refreshToken) {
+            return res.status(400).json({ message: 'Session token and refresh token are required' });
+        }
+    
+        try {
+            const decodedSession = jwt.verify(sessionToken, process.env.JWT_SECRET);
+            const decodedRefresh = jwt.verify(refreshToken, process.env.JWT_SECRET);
+            
+            await redisClient.del(`sessionToken:${decodedSession.userId}`);
+            await redisClient.del(`refreshToken:${decodedRefresh.userId}`);
+    
+            res.status(200).json({ message: 'Logged out successfully' });
+        } catch (error) {
+            res.status(400).json({ message: 'Error logging out', error: error.message });
+        }
+    }
+    
 }
 
 module.exports = AuthController;
