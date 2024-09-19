@@ -1,113 +1,94 @@
 {
-    "openapi": "3.0.0",
-    "info": {
-      "title": "API Documentation",
-      "version": "1.0.0",
-      "description": "API Documentation for the BMI App"
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "1.0.0",
+    "description": "API Documentation for the BMI App"
+  },
+  "paths": {
+    "/signup": {
+      "post": {
+        "summary": "Sign up a new user",
+        "description": "Create a new user account",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" },
+                  "fullname": { "type": "string" },
+                  "username": { "type": "string" },
+                  "age": { "type": "integer" },
+                  "gender": { "type": "string" },
+                  "country": { "type": "string" },
+                  "preferredLanguage": { "type": "string" },
+                  "height": { "type": "number", "format": "float" },
+                  "weight": { "type": "number", "format": "float" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully." },
+          "400": { "description": "Error creating user, Bad Request." }
+        }
+      }
     },
-    "paths": {
-      "/signup": {
-        "post": {
-          "summary": "Sign up a new user",
-          "description": "Create a new user account",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "email": { "type": "string" },
-                    "password": { "type": "string" },
-                    "fullname": { "type": "string" },
-                    "username": { "type": "string" },
-                    "age": { "type": "integer" },
-                    "gender": { "type": "string" },
-                    "country": { "type": "string" },
-                    "preferredLanguage": { "type": "string" },
-                    "height": { "type": "number", "format": "float" },
-                    "weight": { "type": "number", "format": "float" }
+    "/login": {
+      "post": {
+        "summary": "Log in a user",
+        "description": "Authenticate a user and return a token.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User logged in successfully." },
+          "400": { "description": "Error logging in." },
+          "401": { "description": "Unauthorized." }
+        }
+      }
+    },
+    "/refresh-token": {
+      "post": {
+        "summary": "Refresh the authentication token",
+        "description": "Refresh the user's token if it is about to expire.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "description": "The current authentication token that is about to expire."
                   }
                 }
               }
             }
-          },
-          "responses": {
-            "201": { "description": "User created successfully." },
-            "400": { "description": "Error creating user, Bad Request." }
           }
-        }
-      },
-      "/login": {
-        "post": {
-          "summary": "Log in a user",
-          "description": "Authenticate a user and return a token.",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "email": { "type": "string" },
-                    "password": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "User logged in successfully." },
-            "400": { "description": "Error logging in" },
-            "401": { "description": "Unauthorized." }
-          }
-        }
-      },
-      "/refresh-token": {
-        "post": {
-          "summary": "Refresh the authentication token",
-          "description": "Refresh the user's token if it is about to expire.",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "refreshToken": {
-                      "type": "string",
-                      "description": "The current authentication token that is about to expire."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "Token refreshed successfully.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "sessionToken": { "type": "string", "description": "The new refreshed token." }
-                    }
-                  }
-                }
-              }
-            },
-            "400": { "description": "Error refreshing token, Bad Request." },
-            "401": { "description": "Unauthorized, invalid or expired token." }
-          }
-        }
-      },
-      "/logout": {
-        "post": {
-          "summary": "Logs out the user",
-          "description": "Logs out the user and removes the authenticated tokens from redis",
-          "requestBody": {
-            "required": true,
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully.",
             "content": {
               "application/json": {
                 "schema": {
@@ -115,24 +96,130 @@
                   "properties": {
                     "sessionToken": {
                       "type": "string",
-                      "description": "The user's session token"
-                    },
-                    "refreshToken": {
-                      "type": "string",
-                      "description": "The user's refresh token"
+                      "description": "The new refreshed token."
                     }
                   }
                 }
               }
             }
           },
-          "responses": {
-            "200": {"description": "Logged out successfully"},
-            "400": { "description": "Error logging out." }
+          "400": { "description": "Error refreshing token, Bad Request." },
+          "401": { "description": "Unauthorized, invalid or expired token." }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "summary": "Logs out the user",
+        "description": "Logs out the user and removes the authenticated tokens from redis",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionToken": {
+                    "type": "string",
+                    "description": "The user's session token"
+                  },
+                  "refreshToken": {
+                    "type": "string",
+                    "description": "The user's refresh token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Logged out successfully." },
+          "400": { "description": "Error logging out." }
+        }
+      }
+    },
+    "/request-password-reset": {
+      "post": {
+        "summary": "Request a password reset",
+        "description": "Generates a password reset token and Sends a password reset link to the user's email.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "The user's registered email address."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset link sent successfully." },
+          "400": { "description": "Error sending password reset link." }
+        }
+      }
+    },
+    "/reset-password": {
+      "get": {
+        "summary": "Renders the password reset form",
+        "description": "Displays the password reset form that takes the reset token which was sent to the user's email and allows the user to submit a new password",
+        "tags": ["Authentication"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "type": "string",
+              "description": "The token used to verify the password request."
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Renders the reset password form"
+          },
+          "400": {
+            "description": "Token is missing or invalid"
           }
         }
-
+      },
+      "post": {
+        "summary": "Reset the password",
+        "description": "Reset the user's password using the token.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "The password reset token from the email."
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "description": "The new password."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successfully." },
+          "400": { "description": "Invalid or expired token, or error resetting password." }
+        }
       }
     }
   }
-  
+}

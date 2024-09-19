@@ -2,9 +2,11 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { Op} = require('sequelize');
+const { Op, DatabaseError} = require('sequelize');
 const { isEmail } = require('validator');
 const redisClient = require('../config/redis');
+const { SendPasswordResetEmail } = require('../utils/emailQueue');
+const { error } = require('console');
 
 class AuthController {
     static async signup(req, res) {
@@ -93,7 +95,6 @@ class AuthController {
 
     static async refreshToken(req, res) {
         const { refreshToken } = req.body;
-        console.log(`Refresh token received for refresh: ${refreshToken}`);
 
         if (!refreshToken) {
             return res.status(401).json({ message: 'Refresh token is required' });
@@ -106,33 +107,27 @@ class AuthController {
 
             // Verify and decode the refresh token
             const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-            console.log(`Decoded refresh token: ${JSON.stringify(decoded)}`);
 
             // Reconnect to Redis if needed
             await redisClient.reconnect();
 
             // Retrieve the stored refresh token from Redis
             const storedRefreshToken = await redisClient.get(`refreshToken:${decoded.userId}`);
-            console.debug(`Stored refresh token for user ${decoded.userId}: ${storedRefreshToken}`);
 
             // Check if the provided refresh token matches the stored token
             if (storedRefreshToken !== refreshToken) {
-                console.log('Provided refresh token does not match stored refresh token');
                 return res.status(403).json({ message: 'Invalid refresh token' });
             }
 
             // Generate a new session token
             const newToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
-            console.log(`Generated new session token: ${newToken}`);
 
             // Store the new session token in Redis
             await redisClient.set(`sessionToken:${decoded.userId}`, newToken, 3600);
-            console.log(`New session token stored in Redis for user ${decoded.userId}`);
 
             // Respond with the new session token
             res.json({ sessionToken: newToken });
         } catch (error) {
-            console.log('Error during refresh token process:', error.message);
             res.status(403).json({ message: 'Invalid refresh token', error: error.message });
         }
     }
@@ -146,7 +141,7 @@ class AuthController {
         try {
             const decodedSession = jwt.verify(sessionToken, process.env.JWT_SECRET);
             const decodedRefresh = jwt.verify(refreshToken, process.env.JWT_SECRET);
-            
+
             await redisClient.del(`sessionToken:${decodedSession.userId}`);
             await redisClient.del(`refreshToken:${decodedRefresh.userId}`);
     
@@ -155,7 +150,88 @@ class AuthController {
             res.status(400).json({ message: 'Error logging out', error: error.message });
         }
     }
-    
+
+    static async requestPasswordReset(req, res) {
+        let { email } = req.body;
+        if (!email || !isEmail(email)) {
+            return res.status(400).json({ message: 'A valid email address is required' });
+        }
+        email = String(email).trim();
+        if (typeof email !== 'string') {
+            return res.status(400).json({ message: 'Email must be a string' });
+        }
+
+        try {
+            const user = await User.findOne({ where: { email } });
+            if (!user) {
+                return res.status(404).json({ message: 'Invalid email, user not found' });
+            }
+
+            await SendPasswordResetEmail(email);
+            res.status(200).json({ message: `Password reset email sent to ${email}` });
+        } catch (error) {
+            res.status(500).json({ message: 'Error sending password reset email', error: error.message });
+        }
+    }
+
+    static async Passwordreset(req, res) {
+        const { token } = req.query;
+        if (!token) {
+            return res.status(400).json({message: 'Token is missing', error: error.message });
+        }
+
+        // Render a simple HTML form for resetting the password
+        res.send(`<form action="/reset-password" method="POST">
+            <input type="hidden" name="token" value="${token}" />
+            <label for="newPassword">Enter your new password:</label>
+            <input type="password" name="newPassword" required />
+            <button type="submit">Reset Password</button>
+        </form>`);
+    }
+
+    static async resetPassword(req, res) {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Token and new password are required', error:error.message });
+        }
+
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findOne({ where: { id: decoded.userId } });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            //compare old and new password
+            const isSamePassword = await bcrypt.compare(newPassword, user.password);
+            if (isSamePassword) {
+                return res.status(404).json({ message: 'New password cannot be the same as old password' });
+            }
+            // Hash the new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            // Update the user's password
+            user.password = hashedPassword;
+            try {
+                await user.save();
+            } catch (error) {
+                return res.status(500).json({ message: 'Internal server error' });
+            }
+
+            return res.status(200).json({ message: 'Password has been successfully reset' });
+        } catch (error) {
+            console.error('Error resetting password:', error);
+
+            if (error.name === 'DatabaseError') {
+                return res.status(500).json({ message: 'Internal server error', error: error.message});
+            }
+            if (error.name === 'TokenExpiredError') {
+                return res.status(400).json({ message: 'Invalid or expired token', error: error.message });
+            } else if (error.name === 'JsonWebTokenError') {
+                return res.status(400).json({ message: 'Invalid token', error: error.message });
+            }
+            return res.status(400).json({ message: 'Invalid or expired token', error: error.message });
+        }
+    }
 }
 
 module.exports = AuthController;
