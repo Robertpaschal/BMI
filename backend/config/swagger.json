@@ -5,6 +5,19 @@
     "version": "1.0.0",
     "description": "API Documentation for the BMI App"
   },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/signup": {
       "post": {
@@ -59,7 +72,19 @@
           }
         },
         "responses": {
-          "200": { "description": "User logged in successfully." },
+          "200": {
+            "description": "User logged in successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string", "description": "Authentication token." }
+                  }
+                }
+              }
+            }
+          },
           "400": { "description": "Error logging in." },
           "401": { "description": "Unauthorized." }
         }
@@ -111,7 +136,7 @@
     "/logout": {
       "post": {
         "summary": "Logs out the user",
-        "description": "Logs out the user and removes the authenticated tokens from redis",
+        "description": "Logs out the user and removes the authenticated tokens from Redis.",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -142,7 +167,7 @@
     "/request-password-reset": {
       "post": {
         "summary": "Request a password reset",
-        "description": "Generates a password reset token and Sends a password reset link to the user's email.",
+        "description": "Generates a password reset token and sends a password reset link to the user's email.",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -169,7 +194,7 @@
     "/reset-password": {
       "get": {
         "summary": "Renders the password reset form",
-        "description": "Displays the password reset form that takes the reset token which was sent to the user's email and allows the user to submit a new password",
+        "description": "Displays the password reset form that takes the reset token sent to the user's email and allows the user to submit a new password.",
         "tags": ["Authentication"],
         "parameters": [
           {
@@ -183,12 +208,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Renders the reset password form"
-          },
-          "400": {
-            "description": "Token is missing or invalid"
-          }
+          "200": { "description": "Renders the reset password form" },
+          "400": { "description": "Token is missing or invalid" }
         }
       },
       "post": {
@@ -218,6 +239,43 @@
         "responses": {
           "200": { "description": "Password reset successfully." },
           "400": { "description": "Invalid or expired token, or error resetting password." }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Get user's profile information",
+        "description": "Retrieve the current user's profile data.",
+        "tags": ["Profile management"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fullname": { "type": "string" },
+                    "age": { "type": "integer" },
+                    "gender": { "type": "string" },
+                    "country": { "type": "string" },
+                    "height": { "type": "number", "format": "float" },
+                    "weight": { "type": "number", "format": "float" },
+                    "preferredLanguage": { "type": "string" },
+                    "last_updated_at": { "type": "string", "format": "date-time" },
+                    "created_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Unauthorized, user not found or token invalid/expired" },
+          "500": { "description": "Internal server error" }
         }
       }
     }

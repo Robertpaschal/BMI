@@ -62,6 +62,9 @@ class AuthController {
             });
             res.status(201).json({ message: 'User created successfully', user });
         } catch (error) {
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+            }
             res.status(400).json({ message: 'Error creating user', error: error.message });
         }
     }
@@ -89,6 +92,9 @@ class AuthController {
 
             res.json({ sessionToken, refreshToken });
         } catch (error) {
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+            }
             res.status(400).json({ message: 'Error logging in', error: error.message });
         }
     }
@@ -170,6 +176,9 @@ class AuthController {
             await SendPasswordResetEmail(email);
             res.status(200).json({ message: `Password reset email sent to ${email}` });
         } catch (error) {
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+            }
             res.status(500).json({ message: 'Error sending password reset email', error: error.message });
         }
     }
@@ -214,6 +223,11 @@ class AuthController {
             try {
                 await user.save();
             } catch (error) {
+                console.error('Error saving user:', error);
+                
+                if (error instanceof DatabaseError) {
+                    return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+                }
                 return res.status(500).json({ message: 'Internal server error' });
             }
 

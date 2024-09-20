@@ -4,9 +4,9 @@ const nodemailer = require('nodemailer');
 
 // Create a worker to process the email queue
 const emailWorker = new Worker('email', async job => {
-    const { email, token } = job.data;
+    const { email, token, fullname } = job.data;
 
-    console.log('Processing job:', job.id, { email, token });
+    console.log('Processing job:', job.id, { email, fullname, token });
     
     // set up Nodemailer for sending the email
     const transporter = nodemailer.createTransport({
@@ -26,12 +26,8 @@ const emailWorker = new Worker('email', async job => {
     const mailOptions = {
         from: process.env.EMAIL_USERNAME,
         to: email,
-        subject: 'Password Reset Request',
-        text: `You requested a password reset.
-
-        Your token for reset is: ${token}
-
-        Click here to reset your password: ${resetUrl}. This link expires in 30 minutes.`
+        subject: `Password Reset Request for ${fullname}`,
+        text: `Hello ${fullname}.\n\nYou requested a password reset.\n\nYour token for reset is: ${token}\n\nClick here to reset your password: ${resetUrl}.\nThis link expires in 30 minutes.`
     };
 
     try {

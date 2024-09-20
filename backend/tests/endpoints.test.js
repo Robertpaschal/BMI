@@ -14,10 +14,7 @@ const { expect } = chai;
 describe('User Authentication', () => {
     beforeEach(async () => {
         try {
-            await User.destroy({
-                where: {}, 
-                truncate: true
-            });
+            await User.sequelize.sync({ force: true });
         } catch (error) {
             console.error('Error cleaning up database:', error);
         }

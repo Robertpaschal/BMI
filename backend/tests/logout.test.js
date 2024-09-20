@@ -15,13 +15,9 @@ chai.use(chaiHttp);
 describe('Logout Integration test', async () => {
     let user, sessionToken, refreshToken;
 
-    before(async () => {
-        await User.sequelize.sync({ force: true });
-    });
-
     after(async () => {
         await User.sequelize.sync({ force: true });
-    })
+    });
 
     it('should sign up a user', async () => {
         user = {

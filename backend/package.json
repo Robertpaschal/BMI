@@ -11,7 +11,7 @@
     "start-server": "nodemon --exec babel-node --presets @babel/preset-env ./server.js",
     "start-worker": "nodemon --exec babel-node --presets @babel/preset-env ./worker.js",
     "dev": "nodemon --exec babel-node --presets @babel/preset-env",
-    "test": "./node_modules/.bin/mocha --require @babel/register --exit"
+    "test": "./node_modules/.bin/mocha --exit tests"
   },
   "keywords": [],
   "author": {
@@ -42,12 +42,13 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@types/sinon": "^17.0.3",
     "chai": "^4.5.0",
     "chai-http": "^4.3.0",
     "eslint": "^9.10.0",
     "mocha": "^6.2.3",
     "nodemon": "^3.1.4",
     "sequelize-cli": "^6.6.2",
-    "sinon": "^18.0.1"
+    "sinon": "^19.0.2"
   }
 }

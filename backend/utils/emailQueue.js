@@ -27,6 +27,7 @@ async function SendPasswordResetEmail(email) {
         // Push the email sending task to the BullMQ Queue
         await emailQueue.add('send-email', {
             email: user.email,
+            fullname: user.fullname,
             token: token
         });
         

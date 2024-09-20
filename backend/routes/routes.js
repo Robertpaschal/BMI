@@ -1,5 +1,7 @@
 const express = require('express');
 const AuthController = require('../controllers/authController');
+const AuthMiddleware = require('../middlewares/authMiddleware');
+const UserController = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -11,5 +13,8 @@ router.post('/logout', AuthController.logout);
 router.post('/request-password-reset', AuthController.requestPasswordReset);
 router.get('/reset-password', AuthController.Passwordreset);
 router.post('/reset-password', AuthController.resetPassword);
+
+// profile management routes
+router.get('/profile', AuthMiddleware.verifyToken, UserController.fetchUserProfile);
 
 module.exports = router;

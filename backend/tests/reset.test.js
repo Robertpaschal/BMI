@@ -8,7 +8,6 @@ const { faker }= require('@faker-js/faker');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const app = require('../app');
-const AuthController = require('../controllers/authController');
 const User = require('../models/User');
 const { emailQueue } = require('../utils/emailQueue');
 
@@ -21,31 +20,51 @@ describe('Password Reset Endpoints', () => {
     let mockUser;
     let validToken;
     let invalidToken
+    let emailAdd
+    const mockUserId = 1;
 
-    before(() => {
-        // Stub the User model to mock finding a user by email
-        findUserStub = sinon.stub(User, 'findOne');
+    before(async () => {
         // Create a valid and invalid token for testing
         validToken = 'valid-token';
         invalidToken = 'invalid-token';
         // Stubbing jwt.sign for the valid token test
         sinon.stub(jwt, 'sign').callsFake(() => validToken);
-        // Mock user object
-        mockUser = { id: 1, email: faker.internet.email({ firstName: 'Any'}), password: bcrypt.hashSync('oldPassword', 10) };
-        mockUser.save = sinon.stub().resolves(mockUser);
+    });
+
+    beforeEach(async () => {
+        // Create a mock user
+        const hashedPassword = await bcrypt.hash(faker.internet.password(), 10);
+        mockUser = await User.create({
+            email: faker.internet.email({ firstname: 'Any'}),
+            password: hashedPassword,
+            fullname: faker.person.fullName(),
+            username: faker.internet.userName(),
+            age: faker.number.int({min: 18, max: 65 }),
+            gender: faker.person.sexType(),
+            country: faker.location.country(),
+            preferredLanguage: faker.word.noun(),
+            height: faker.number.int({ min: 150, max: 200}),
+            weight: faker.number.int({ min: 50, max: 100})
+        });
         emailAdd = { email: mockUser.email, token: validToken };
         // Stub emailQueue to mock background email sending process
         emailQueueStub = sinon.stub(emailQueue, 'add');
-
+        findUserStub = sinon.stub(User, 'findOne');
     });
 
-    after(() => {
+    afterEach(() => {
         sinon.restore();
+    });
+
+    after(async () => {
+        sinon.restore();
+        await User.sequelize.sync({ force: true });
     });
 
     describe('POST /request-password-reset', () => {
         it('should request a password reset and send an email if the user exists', async () => {
             findUserStub.resolves(mockUser);
+            emailQueueStub.resolves(emailAdd);
 
             const res = await chai.request(app)
             .post('/request-password-reset')
@@ -60,7 +79,7 @@ describe('Password Reset Endpoints', () => {
 
             const res = await chai.request(app)
             .post('/request-password-reset')
-            .send({ email: faker.internet.email({ firstname: 'any'}) })
+            .send({ email: faker.internet.email({ firstname: 'any' }) })
 
             expect(res).to.have.status(404);
             expect(res.body).to.have.property('message').eql('Invalid email, user not found');
@@ -113,6 +132,7 @@ describe('Password Reset Endpoints', () => {
 
     describe('POST /reset-password', () => {
         beforeEach(() => {
+            findUserStub.resolves(mockUser);
             // Stub bcrypt.compare to simulate password comparison
             bcryptCompareStub = sinon.stub(bcrypt, 'compare');
         });
@@ -126,14 +146,10 @@ describe('Password Reset Endpoints', () => {
 
             // Stub jwt.verify to simulate token decoding
             sinon.stub(jwt, 'verify').callsFake((token) => {
-                try{
-                    if (token === validToken) {
-                        return { userId: mockUser.id };
-                    }
-                    throw new Error
-                } catch (error) {
-                    return error;
+                if (token === validToken) {
+                    return { userId: mockUser.id };
                 }
+                throw new Error('Invalid token');
             });
             const res = await chai.request(app)
             .post('/reset-password')
@@ -193,15 +209,12 @@ describe('Password Reset Endpoints', () => {
 
         it('should return 404 if new password is the same as the old password', async () => {
             bcryptCompareStub.resolves(true);
+
             sinon.stub(jwt, 'verify').callsFake((token) => {
-                try{
-                    if (token === validToken) {
-                        return { userId: mockUser.id };
-                    }
-                    throw new Error('Invalid token')
-                } catch (error) {
-                    return error;
+                if (token === validToken) {
+                    return { userId: mockUser.id };
                 }
+                throw new Error('Invalid token');
             });
 
             const res = await chai.request(app)
@@ -214,17 +227,14 @@ describe('Password Reset Endpoints', () => {
         });
 
         it('should return 500 if there is a server error during password reset', async () => {
-            sinon.stub(User.prototype, 'save').rejects(new Error('DatabaseError'));
+            bcryptCompareStub.resolves(false);
+            sinon.stub(User.prototype, 'save').throws(new Error('Database Error'));
 
             sinon.stub(jwt, 'verify').callsFake((token) => {
-                try{
-                    if (token === validToken) {
-                        return { userId: mockUser.id };
-                    }
-                    throw new Error('Invalid token')
-                } catch (error) {
-                    return error;
+                if (token === validToken) {
+                    return { userId: mockUserId };
                 }
+                throw new Error('Invalid token');
             });
             const res = await chai.request(app)
             .post('/reset-password')
