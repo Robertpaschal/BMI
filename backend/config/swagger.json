@@ -261,6 +261,7 @@
                   "type": "object",
                   "properties": {
                     "fullname": { "type": "string" },
+                    "username": { "type": "string" },
                     "age": { "type": "integer" },
                     "gender": { "type": "string" },
                     "country": { "type": "string" },
@@ -276,6 +277,139 @@
           },
           "400": { "description": "Unauthorized, user not found or token invalid/expired" },
           "500": { "description": "Internal server error" }
+        }
+      },
+      "post": {
+        "summary": "Update's user profile",
+        "description": "Update specific profile details such as fullname, age, gender, country, height, weight or preferred language.",
+        "tags": ["Profile management"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullname": {
+                    "type": "string",
+                    "description": "The user's fullname",
+                    "example": "John Doe"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "The user's username",
+                    "example": "Divine"
+                  },
+                  "age": {
+                    "type": "integer",
+                    "description": "The user's age",
+                    "example": 30
+                  },
+                  "gender" : {
+                    "type": "integer",
+                    "description": "The user's gender",
+                    "example": "male"
+                  },
+                  "country": {
+                    "type": "string",
+                    "description": "The user's country",
+                    "example": "USA"
+                  },
+                  "height": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The user's height",
+                    "example": 180.5
+                  },
+                  "weight": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The user's weight",
+                    "example": 75.3
+                  },
+                  "preferredLanguage": {
+                    "type": "string",
+                    "description": "The user's preferred language",
+                    "example": "English"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Profile updated successfully" },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "fullname": { "type": "string", "example": "John Doe" },
+                        "username": { "type": "string", "example": "Divine"},
+                        "age": { "type": "integer", "example": 30 },
+                        "gender": { "type": "string", "example": "male" },
+                        "country": { "type": "string", "example": "USA" },
+                        "height": { "type": "number", "format": "float", "example": 180.5 },
+                        "weight": { "type": "number", "format": "float", "example": 75.3 },
+                        "preferredLanguage": { "type": "string", "example": "English" },
+                        "last_updated_at": { "type": "string", "format": "date-time" },
+                        "created_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input. Validation errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Fullname must be a string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "User not found" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "User's details cannot be updated at the moment" }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

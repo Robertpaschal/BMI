@@ -23,7 +23,7 @@ describe('Tests the GET /profile endpoint', () => {
             password: faker.internet.password(),
             fullname: faker.person.fullName(),
             username: faker.internet.userName(),
-            age: faker.number.int({min: 18, max: 65 }),
+            age: faker.number.int({ min: 18, max: 65 }),
             gender: faker.person.sexType(),
             country: faker.location.country(),
             preferredLanguage: faker.word.noun(),
@@ -52,7 +52,7 @@ describe('Tests the GET /profile endpoint', () => {
         await User.sequelize.sync({ force: true });
     })
 
-    it('shoukd retrieve the user profile successfully with a valid token', async() => {
+    it('should retrieve the user profile successfully with a valid token', async() => {
         const res = await chai.request(app)
         .get('/profile')
         .set('Authorization', `Bearer ${validToken}`)
