@@ -16,6 +16,7 @@ router.post('/reset-password', AuthController.resetPassword);
 
 // profile management routes
 router.get('/profile', AuthMiddleware.verifyToken, UserController.fetchUserProfile);
-router.post('/profile', AuthMiddleware.verifyToken, UserController.updateProfile);
+router.put('/profile', AuthMiddleware.verifyToken, UserController.updateProfile);
+router.delete('/profile', AuthMiddleware.verifyToken, UserController.deleteProfile);
 
 module.exports = router;

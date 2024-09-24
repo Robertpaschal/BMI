@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const sinon = require('sinon');
@@ -10,7 +12,7 @@ const { expect } = chai;
 
 chai.use(chaiHttp);
 
-describe('POST /profile', () => {
+describe('PUT /profile', () => {
     let sessionToken;
     let refreshToken;
     let user;
@@ -49,7 +51,7 @@ describe('POST /profile', () => {
         sinon.restore();
     });
 
-    after( async() => {
+    after(async () => {
         sinon.restore();
         await User.sequelize.sync({ force: true });
     });
@@ -67,7 +69,7 @@ describe('POST /profile', () => {
         }
 
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
         .send(data)
 
@@ -84,7 +86,7 @@ describe('POST /profile', () => {
             country: faker.location.country()
         }
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
         .send(data)
 
@@ -97,7 +99,7 @@ describe('POST /profile', () => {
 
     it('should return a 400 error when the fullname is not a string', async() => {
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
         .send({
             fullname: faker.number.int({ min: 0, max: 500 })
@@ -109,7 +111,7 @@ describe('POST /profile', () => {
 
     it('should return a 400 when height is not a float', async() => {
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
         .send({ 
             height: faker.word.noun() 
@@ -123,7 +125,7 @@ describe('POST /profile', () => {
         sinon.stub(User, 'findOne').resolves(null);
 
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
         .send({ 
             fullname: faker.person.fullName() 
@@ -137,7 +139,7 @@ describe('POST /profile', () => {
 
     it('should return 400 when the token isn\'t the token stored as user\'s session token', async() => {
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${refreshToken}`)
         .send({
             age: faker.number.int({ min: 18, max: 65 }),
@@ -155,7 +157,7 @@ describe('POST /profile', () => {
         sinon.stub(User, 'findOne').throws(new Error('Unknown Error'));
 
         const res = await chai.request(app)
-        .post('/profile')
+        .put('/profile')
         .set('Authorization', `Bearer ${sessionToken}`)
 
         expect(res).to.have.status(500);

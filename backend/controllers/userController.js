@@ -50,7 +50,7 @@ class UserController {
                 user.fullname = fullname;
             }
             if (username !== undefined) {
-                if (typeof fullname !== 'string') {
+                if (typeof username !== 'string') {
                     return res.status(400).json({ message: 'Username must be a string' });
                 }
                 user.username = username;
@@ -120,6 +120,28 @@ class UserController {
             });
         } catch (error) {
             return res.status(500).json({ message: "User's details cannot be updated at the moment", error: error.message });
+        }
+    }
+
+    static async deleteProfile(req, res) {
+        try {
+            const { userId } = req.user;
+
+            const user = await User.findOne({ where: { id: userId } });
+            if(!user) {
+                return res.status(404).json({ message: "User not found", error:error.message });
+            }
+
+            await user.destroy();
+
+            return res.status(200).json({ message: "User profile and account deleted successfully" });
+        } catch (error) {
+            console.error('Error deleting user:', error);
+
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+            }
+            return res.status(500).json({ message: "User's account cannot be deleted at the moment", error: error.message });
         }
     }
 }

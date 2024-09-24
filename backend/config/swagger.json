@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "API Documentation",
+    "title": "BMI API Documentation",
     "version": "1.0.0",
     "description": "API Documentation for the BMI App"
   },
@@ -279,7 +279,7 @@
           "500": { "description": "Internal server error" }
         }
       },
-      "post": {
+      "put": {
         "summary": "Update's user profile",
         "description": "Update specific profile details such as fullname, age, gender, country, height, weight or preferred language.",
         "tags": ["Profile management"],
@@ -405,6 +405,71 @@
                   "type": "object",
                   "properties": {
                     "message": { "type": "string", "example": "User's details cannot be updated at the moment" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary": "Deletes the user's profile and account",
+        "description": "Deletes the user's profile and account",
+        "tags": ["Profile management"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile and account deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "User profile and account deleted successfully"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Expired token" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { 
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                    "properties": {
+                      "message": { "type": "string", "example": "User not found" }
+                  }
+                }
+              }
+            }
+
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                    "properties": {
+                      "message": { "type": "string", "example": "Internal server error" }
                   }
                 }
               }
