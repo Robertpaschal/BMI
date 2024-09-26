@@ -44,8 +44,10 @@ describe('POST /bmi/calculate', () => {
         sinon.restore();
     });
 
-    after(() => {
+    after(async() => {
         sinon.restore();
+        await BMIvalue.sequelize.sync({ force: true });
+        await User.sequelize.sync({ force: true });
     });
 
     const makeRequest = async (data) => {

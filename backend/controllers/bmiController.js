@@ -1,5 +1,5 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
-const { DatabaseError} = require('sequelize');
+const { Op, DatabaseError } = require('sequelize');
 const { error } = require('console');
 const User = require('../models/User');
 const BMIvalue = require('../models/bmiModel');
@@ -33,8 +33,10 @@ class BMIController {
 
             await BMIvalue.create({
                 userId: user.id,
-                bmi: parseFloat(bmi),
+                height: parseFloat(height),
+                weight: parseFloat(weight),
                 calculationUnit: unit,
+                bmi: parseFloat(bmi),
                 category,
             });
 
@@ -44,6 +46,54 @@ class BMIController {
                 return res.status(500).json({ message: "Database Error", error: error.message });
             }
             return res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    };
+
+    static async getUserBMIHistory(req, res) {
+        try{
+            const { userId } = req.user;
+            const { page = 1, limit = 10 } = req.query;
+
+            const user = await User.findOne({ where: { id: userId } });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found', error: error.message });
+            }
+
+            const bmiHistory =  await BMIvalue.findAndCountAll({
+                where: {
+                    userId: userId
+                },
+                attributes: ['height', 'weight', 'calculationUnit', 'bmi', 'category', 'createdAt'],
+                order: [['createdAt', 'DESC']],
+                limit: parseInt(limit),
+                offset: (page - 1) * limit
+            });
+
+            if (bmiHistory.count === 0) {
+                return res.status(200).json({
+                    message: `No BMI records found for user ${user.fullname}.`,
+                    data: [],
+                });
+            }
+
+            return res.status(200).json({
+                message: 'BMI records retrieved successfully',
+                total: bmiHistory.count,
+                currentPage: page,
+                totalPages: Math.ceil(bmiHistory.count / limit),
+                data: bmiHistory.rows,
+            });
+        } catch (error) {
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ 
+                    message: "Database Error", 
+                    error: error.message 
+                });
+            }
+            return res.status(500).json({
+                message: 'An error occurred while retrieving BMI records',
+                error: error.message
+            });
         }
     };
 }

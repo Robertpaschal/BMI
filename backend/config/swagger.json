@@ -590,6 +590,129 @@
           }
         }
       }
+    },
+    "/bmi/history": {
+      "get": {
+        "summary": "Retrieves a user's BMI history",
+        "description": "Fetch all BMI records for the authenticated user, grouped by height, weight, unit, BMI value, category, and creation date. Supports pagination.",
+        "tags": ["BMI management"],
+        "produces": ["application/json"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "required": false,
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of records per page",
+            "required": false,
+            "type": "integer",
+            "default": 10
+          }
+        ],
+        "responses":{
+          "200": {
+            "description": "Successful retrieval of BMI history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "BMI records retrieved successfully"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "currentPage": {
+                      "type": "integer",
+                      "example": "1"
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "height": { "type": "number", "example": 175 },
+                          "weight": { "type": "number", "example": 70 },
+                          "unit": { "type": "string", "example": "metric" },
+                          "bmi": { "type": "number", "example": 22.88 },
+                          "category": { "type": "string", "example": "Normal weight" },
+                          "createdAt": { "type": "string", "format": "date-time", "example": "2024-09-26T12:34:56Z" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "An error occured while retrieving BMI records"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

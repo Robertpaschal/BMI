@@ -22,4 +22,6 @@ router.delete('/profile', AuthMiddleware.verifyToken, UserController.deleteProfi
 
 // bmi management routes
 router.post('/bmi/calculate', AuthMiddleware.verifyToken, BMIController.calculateUserBMIData);
+router.get('/bmi/history', AuthMiddleware.verifyToken, BMIController.getUserBMIHistory);
+
 module.exports = router;
