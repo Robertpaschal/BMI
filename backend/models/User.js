@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/sequelize');
+const BMIvalue = require('./bmiModel');
 
 const User = sequelize.define('User', {
     email: {
@@ -51,5 +52,9 @@ const User = sequelize.define('User', {
     timestamps: true,
     tableName: 'User',
 });
+
+User.associate = (models) => {
+    User.hasMany(models.BMIvalue, { foreignKey: 'userId' });
+};
 
 module.exports = User;

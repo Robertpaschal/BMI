@@ -477,6 +477,119 @@
           }
         }
       }
+    },
+    "/bmi/calculate": {
+      "post": {
+        "summary": "Calculate BMI based on input height and weight",
+        "description": "Calculates the user's BMI based on input height and weight and unit for the calculation",
+        "tags": ["BMI management"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type":"object",
+                "properties": {
+                  "height": { 
+                    "type": "number",
+                    "format": "float",
+                    "description": "The user's height value",
+                    "example": 1.73
+                  },
+                  "weight": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The user's weight value",
+                    "example": 70
+                  },
+                  "unit" : {
+                    "type": "string",
+                    "description": "The user's preferred unit for the height and weight values",
+                    "example": "metric"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully calculated and returned the user's BMI value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "bmi": {
+                      "type": "number",
+                      "format": "float",
+                      "description": "User's BMI value",
+                      "example": "22.86"
+                    },
+                    "category": {
+                      "type": "string",
+                      "description": "The user's BMI value category",
+                      "example": "Normal weight"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description": "Invalid input. Validation errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Height and weight must be a valid float number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found", 
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

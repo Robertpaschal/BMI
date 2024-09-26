@@ -3,9 +3,6 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const sinon = require('sinon');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const redisClient = require('../config/redis');
 const { faker } = require('@faker-js/faker');
 const app = require('../app');
 const User = require('../models/User');
