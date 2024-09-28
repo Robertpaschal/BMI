@@ -14,10 +14,13 @@
     "dialect": "postgres"
   },
   "production": {
-    "username": "root",
-    "password": "password",
-    "database": "bmi_database",
-    "host": "localhost",
-    "dialect": "postgres"
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectedUnauthorized": false
+      }
+    }
   }
 }
