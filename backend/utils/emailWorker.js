@@ -2,6 +2,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 const { Worker, Queue } = require('bullmq');
 const nodemailer = require('nodemailer');
 
+console.log('Connecting to Redis at:', process.env.REDIS_URL);
 // Create a worker to process the email queue
 const emailWorker = new Worker('email', async job => {
     const { email, token, fullname } = job.data;
