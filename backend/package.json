@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/eslint",
     "check-lint": "lint *.js",
-    "start": "npm run start:pod",
+    "start": "npm run start:prod",
     "start:dev": " NODE_ENV=development nodemon app.js",
     "start:prod": "NODE_ENV=production node app.js",
     "test": "./node_modules/.bin/mocha --exit tests"
