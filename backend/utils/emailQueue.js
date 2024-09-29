@@ -6,7 +6,7 @@ const User = require('../models/User');
 
 // Create a Bull queue for email sending
 const emailQueue = new Queue('email', {
-    redis: {
+    connection: {
         url: process.env.REDIS_URL,
     }
  });
