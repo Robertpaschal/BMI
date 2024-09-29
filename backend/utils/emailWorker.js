@@ -22,7 +22,9 @@ const emailWorker = new Worker('email', async job => {
 
     // Create the reset URL
     const PORT = process.env.PORT;
-    const resetUrl = `http://${process.env.HOSTNAME}:${PORT}/reset-password?token=${token}`;
+    const resetUrl = process.env.NODE_ENV === 'production'
+  ? `https://${process.env.HOSTNAME}/reset-password?token=${token}`
+  : `http://${process.env.HOSTNAME}:${PORT}/reset-password?token=${token}`;
 
     const mailOptions = {
         from: process.env.EMAIL_USERNAME,
