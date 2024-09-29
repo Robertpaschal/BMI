@@ -1,4 +1,6 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFile) });
+
 const jwt = require('jsonwebtoken');
 const { Queue } = require('bullmq');
 const User = require('../models/User');

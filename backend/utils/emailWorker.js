@@ -1,16 +1,13 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFile) });
+
 const { Worker, Queue } = require('bullmq');
 const nodemailer = require('nodemailer');
 
 console.log('Connecting to Redis at:', process.env.REDIS_URL);
 // Create a worker to process the email queue
-const emailWorker = new Worker('email', async job => {
-    const { email, token, fullname } = job.data;
-
-    console.log('Processing job:', job.id, { email, fullname, token });
-    
-    // set up Nodemailer for sending the email
-    const transporter = nodemailer.createTransport({
+function createTransporter() {
+    return nodemailer.createTransport({
         //host: process.env.MAILTRAP_HOST,
         //port: process.env.MAILTRAP_PORT,
         service: 'Gmail',
@@ -19,7 +16,13 @@ const emailWorker = new Worker('email', async job => {
             pass: process.env.EMAIL_PASSWORD
         }
     });
+}
 
+const emailWorker = new Worker('email', async job => {
+    const { email, token, fullname } = job.data;
+
+    console.log('Processing job:', job.id, { email, fullname, token });
+    const transporter = createTransporter();
     // Create the reset URL
     const PORT = process.env.PORT;
     const resetUrl = process.env.NODE_ENV === 'production'
