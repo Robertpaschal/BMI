@@ -6,6 +6,7 @@ class RedisClient {
   constructor() {
     this.client = redis.createClient({
       url: process.env.REDIS_URL,
+      tls: {}
     });
 
     this.client.on('error', (err) => {
