@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 
 
 // Load environment variables based on NODE_ENV (development or production)
-const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
+const envFile = `.env.${ process.env.NODE_ENV }`;
 if (fs.existsSync(envFile)) {
   dotenv.config({ path: envFile });
 } else {

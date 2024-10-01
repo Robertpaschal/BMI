@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Queue } = require('bullmq');
 const User = require('../models/User');
 
-
+console.log('Redis URL in Queue:', process.env.REDIS_URL);
 // Create a Bull queue for email sending
 const emailQueue = new Queue('email', {
     connection: {

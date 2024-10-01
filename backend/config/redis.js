@@ -4,6 +4,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFi
 const redis = require('redis');
 const { promisify } = require('util');
 
+console.log('Redis URL:', process.env.REDIS_URL);
 class RedisClient {
   constructor() {
     this.client = redis.createClient({
