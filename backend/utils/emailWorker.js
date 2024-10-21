@@ -3,6 +3,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFi
 
 const { Worker, Queue } = require('bullmq');
 const nodemailer = require('nodemailer');
+const redisClient = require('../config/redis');
 
 console.log('Connecting to Redis at:', process.env.REDIS_URL);
 // Create a worker to process the email queue
@@ -52,9 +53,7 @@ const emailWorker = new Worker('email', async job => {
         throw error;
     }
 }, {
-    connection: {
-        url: process.env.REDIS_URL
-    }
+    connection: redisClient.client,
 });
 
 emailWorker.on('error', (error) => {

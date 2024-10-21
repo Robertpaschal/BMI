@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const dotenv = require('dotenv');
-
+const redisClient = require('./config/redis')
 
 // Load environment variables based on NODE_ENV (development or production)
 const envFile = `.env.${ process.env.NODE_ENV }`;

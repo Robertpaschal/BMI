@@ -3,15 +3,18 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFi
 
 const jwt = require('jsonwebtoken');
 const { Queue } = require('bullmq');
+const redisClient = require('../config/redis');
 const User = require('../models/User');
 
 console.log('Redis URL in Queue:', process.env.REDIS_URL);
 // Create a Bull queue for email sending
 const emailQueue = new Queue('email', {
-    connection: {
-        url: process.env.REDIS_URL,
-    }
+    connection: redisClient.client,
  });
+console.log('Initializing Redis connection for queue with URL:', process.env.REDIS_URL);
+emailQueue.on('error', (error) => {
+    console.error('Email Queue error:', error);
+});
 
 // Function to generate password reset token and add email job to queue
 async function SendPasswordResetEmail(email) {

@@ -1,66 +1,67 @@
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFile) });
 
-const redis = require('redis');
-const { promisify } = require('util');
+const Redis = require('ioredis');
+let instance = null; // Singleton instance to ensure only one connection
 
-console.log('Redis URL:', process.env.REDIS_URL);
 class RedisClient {
   constructor() {
-    this.client = redis.createClient({
-      url: process.env.REDIS_URL,
-      tls: {}
-    });
-
-    this.client.on('error', (err) => {
-      console.error('Redis Client Error', err);
-    });
-
-    this.client.get = promisify(this.client.get).bind(this.client);
-    this.client.set = promisify(this.client.set).bind(this.client);
-    this.client.del = promisify(this.client.del).bind(this.client);
-  }
-
-  async isAlive() {
-    if (this.client && this.client.connected) {
-        return true;
-    }
-    return new Promise((resolve, reject) => {
-      this.client.ping((err, response) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response === 'PONG');
-        }
+    if (!instance) {
+      this.client = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: null,
       });
-    });
+
+      this.client.on('error', (err) => {
+        console.error('Redis Client Error', err);
+      });
+
+      this.client.on('connect', () => {
+        console.log('Connected to Redis');
+      });
+
+      instance = this;  // Save this instance to avoid redundant connections
+    } else {
+      return instance;
+    }
   }
 
   async reconnect() {
     if (!(await this.isAlive())) {
-      this.client.quit();
+      await this.client.quit();
       this.client = redis.createClient({ url: process.env.REDIS_URL });
       this.client.on('error', (err) => console.error('Redis Client Error', err));
-      this.client.get = promisify(this.client.get).bind(this.client);
-      this.client.set = promisify(this.client.set).bind(this.client);
-      this.client.del = promisify(this.client.del).bind(this.client);
+      await this.client.connect().catch((err) => {
+        console.error('Redis Reconnection Error', err);
+      });
     }
   }
 
   async get(key) {
-    return this.client.get(key);
+    try {
+      return await this.client.get(key);
+    } catch (err) {
+      console.error('Redis GET Error:', err);
+    }
   }
 
   async set(key, value, duration) {
-    this.client.set(key, value, 'EX', duration);
+    try {
+      await this.client.set(key, value, 'EX', duration);
+    } catch (err) {
+      console.error('Redis SET Error:', err);
+    }
   }
 
   async del(key) {
-   this.client.del(key);
+    try {
+      await this.client.del(key);
+    } catch (err) {
+      console.error('Redis DEL Error:', err);
+    }
   }
 
   async close() {
-    this.client.quit();
+    await this.client.quit();
   }
 }
 
