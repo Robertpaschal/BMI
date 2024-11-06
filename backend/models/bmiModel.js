@@ -23,6 +23,14 @@ const BMIvalue = sequelize.define('BMI', {
         type: DataTypes.FLOAT,
         allowNull: false,
     },
+    heightunit: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    weightunit: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
     bmi: { 
         type: DataTypes.FLOAT, 
         allowNull: false 

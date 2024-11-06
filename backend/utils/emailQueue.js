@@ -17,7 +17,7 @@ emailQueue.on('error', (error) => {
 });
 
 // Function to generate password reset token and add email job to queue
-async function SendPasswordResetEmail(email) {
+async function SendPasswordResetEmail(email, resetCode) {
     try {
         email = String(email).trim();
         // Find user by email
@@ -26,14 +26,11 @@ async function SendPasswordResetEmail(email) {
             throw new Error('User not found');
         }
 
-        // Generate a JWT token that expires in 30 minutes
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30min' });
-
         // Push the email sending task to the BullMQ Queue
-        await emailQueue.add('send-email', {
+        await emailQueue.add('send-password-reset-code', {
             email: user.email,
             fullname: user.fullname,
-            token: token
+            resetCode: resetCode
         });
         
         console.log( `Email containing reset token added to queue for ${user.email}` );
@@ -43,4 +40,19 @@ async function SendPasswordResetEmail(email) {
     }
 }
 
-module.exports = { emailQueue, SendPasswordResetEmail };
+// Function to add email verification to queue
+async function SendVerificationEmail(email, fullname, verificationCode) {
+    try {
+        await emailQueue.add('send-verification-email', {
+            email,
+            fullname,
+            verificationCode,
+        });
+        console.log(`Verification email for ${email} added to the queue.`);
+    } catch (error) {
+        console.error('Error adding email to queue:', error);
+        throw error;
+    }
+} 
+
+module.exports = { emailQueue, SendPasswordResetEmail, SendVerificationEmail };

@@ -4,15 +4,22 @@ const User = require('../models/User');
 const { Op, DatabaseError} = require('sequelize');
 const { isEmail } = require('validator');
 const redisClient = require('../config/redis');
-const { SendPasswordResetEmail } = require('../utils/emailQueue');
+const { SendPasswordResetEmail, SendVerificationEmail } = require('../utils/emailQueue');
 const { error } = require('console');
+const { randomInt } = require('crypto');
 
 class AuthController {
-    static async signup(req, res) {
-        const { email, password, fullname, username, age, gender, country, preferredLanguage, height, weight } = req.body;
+    static async verifyEmail(req, res) {
+        const { email, password, fullname, username } = req.body;
         try {
             if (!email) {
                 return res.status(400).json({ message: 'Error creating user: Email is required.' });
+            }
+            if (!fullname) {
+                return res.status(400).json({ message: 'fullname is required for verification.' });
+            }
+            if (!username) {
+                return res.status(400).json({ message: 'Username is required for verification.' });
             }
             if (!isEmail(email)) {
                 return res.status(400).json({ message: 'Error creating user: Invalid email format.' });
@@ -43,11 +50,47 @@ class AuthController {
                 return res.status(400).json({ message: errorMessage.trim() });
             }
 
-            //Hash the password
+            const verificationCode = String(randomInt(1000, 9999)); // Generates a number between 1000 and 9999
+            await SendVerificationEmail(email, fullname, verificationCode); // Send verification email asynchronously via background worker
+            // Store the verification data temporarily in Redis with a TTL of 10 minutes
+            await redisClient.set(
+                `verify:${email}`,
+                JSON.stringify({ verificationCode, fullname, password, username }),
+                600
+            );
+
+            res.status(200).json({
+                message: `Verification code sent to ${email}. Please verify your account to complete registration.`
+            });
+            
+        } catch (error) {
+            res.status(500).json({ message: 'Error during email verification', error: error.message });
+        }
+    }
+
+    static async signup(req, res) {
+        const { email, verificationCode, age, gender, country, preferredLanguage, height, weight } = req.body;
+
+        if (!email || !verificationCode) {
+            return res.status(400).json({ message: 'Email and verification code are required.' });
+        }
+
+        try {
+            // Retrieve the stored verification data from Redis
+            const storedData =  await redisClient.get(`verify:${email}`);
+            if (!storedData) {
+                return res.status(400).json({ message: 'Verification data expired or invalid.' });
+            }
+
+            const { verificationCode: storedCode, fullname, password, username } = JSON.parse(storedData);
+            if (storedCode !== verificationCode.toString()) {
+                return res.status(400).json({ message: 'Incorrect verification code.' });
+            }
+
             const passwordHash = await bcrypt.hash(password, 10);
 
-            // Create the new user
-            const user = await User.create({
+             // Create the new user in the database
+             const newUser = await User.create({
                 email,
                 password: passwordHash,
                 fullname,
@@ -59,12 +102,16 @@ class AuthController {
                 height,
                 weight,
             });
-            res.status(201).json({ message: 'User created successfully', user });
+
+            // Delete the verification code from the Redis after successful verification
+            await redisClient.del(`verify:${email}`);
+
+            res.status(201).json({ message: 'User verified and created successfully', user: newUser });
         } catch (error) {
             if (error instanceof DatabaseError) {
-                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message });
             }
-            res.status(400).json({ message: 'Error creating user', error: error.message });
+            res.status(400).json({ message: 'Error verifying email', error: error.message });
         }
     }
 
@@ -73,7 +120,7 @@ class AuthController {
         try {
             const user = await User.findOne({ where: { email } });
             if (!user || !(await bcrypt.compare(password, user.password))) {
-                return res.status(401).json({ message: 'Invalid credentials' });
+                return res.status(401).json({ message: 'User with inputted credentials cannot be found' });
             }
 
             if (!process.env.JWT_SECRET) {
@@ -172,8 +219,11 @@ class AuthController {
                 return res.status(404).json({ message: 'Invalid email, user not found' });
             }
 
-            await SendPasswordResetEmail(email);
-            res.status(200).json({ message: `Password reset email sent to ${email}` });
+            const resetCode = randomInt(1000, 9999);
+            await redisClient.set(`reset:${email}`, resetCode, 600);
+            await SendPasswordResetEmail(email, resetCode);
+            
+            res.status(200).json({ message: `Password reset code sent to ${email}` });
         } catch (error) {
             if (error instanceof DatabaseError) {
                 return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
@@ -182,31 +232,20 @@ class AuthController {
         }
     }
 
-    static async Passwordreset(req, res) {
-        const { token } = req.query;
-        if (!token) {
-            return res.status(400).json({message: 'Token is missing', error: error.message });
-        }
-
-        // Render a simple HTML form for resetting the password
-        res.send(`<form action="/reset-password" method="POST">
-            <input type="hidden" name="token" value="${token}" />
-            <label for="newPassword">Enter your new password:</label>
-            <input type="password" name="newPassword" required />
-            <button type="submit">Reset Password</button>
-        </form>`);
-    }
-
     static async resetPassword(req, res) {
-        const { token, newPassword } = req.body;
+        const { email, resetCode, newPassword } = req.body;
 
-        if (!token || !newPassword) {
-            return res.status(400).json({ message: 'Token and new password are required', error:error.message });
+        if (!email || !resetCode || !newPassword) {
+            return res.status(400).json({ message: 'Email, reset code, and new password are required' });
         }
 
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findOne({ where: { id: decoded.userId } });
+            const storedCode = await redisClient.get(`reset:${email}`);
+            if (!storedCode || storedCode !== resetCode) {
+                return res.status(400).json({ message: 'Invalid or expired reset code' });
+            }
+
+            const user = await User.findOne({ where: { email } });
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
@@ -230,19 +269,15 @@ class AuthController {
                 return res.status(500).json({ message: 'Internal server error' });
             }
 
+            await redisClient.del(`reset:${email}`); // Remove reset code from Redis
             return res.status(200).json({ message: 'Password has been successfully reset' });
         } catch (error) {
             console.error('Error resetting password:', error);
 
-            if (error.name === 'DatabaseError') {
-                return res.status(500).json({ message: 'Internal server error', error: error.message});
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Database error', error: error.message });
             }
-            if (error.name === 'TokenExpiredError') {
-                return res.status(400).json({ message: 'Invalid or expired token', error: error.message });
-            } else if (error.name === 'JsonWebTokenError') {
-                return res.status(400).json({ message: 'Invalid token', error: error.message });
-            }
-            return res.status(400).json({ message: 'Invalid or expired token', error: error.message });
+            res.status(500).json({ message: 'Error resetting password', error: error.message });
         }
     }
 }

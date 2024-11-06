@@ -19,6 +19,41 @@
     }
   ],
   "paths": {
+    "/verify-email" : {
+      "post": {
+        "summary": "Initiate email verification for user registration",
+        "description": "Sends a verification code to the user's email. This endpoint requires the user's email, fullname, password and username.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "fullname": { "type": "string", "example": "John Doe" },
+                  "password": { "type": "string", "example": "Password123!" },
+                  "username": { "type": "string", "example": "Divine"}
+                },
+                "required": ["email", "fullname", "password", "username"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification code sent to email successfully."
+          },
+          "400": {
+            "description": "Invalid input or user already exists."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
     "/signup": {
       "post": {
         "summary": "Sign up a new user",
@@ -31,24 +66,24 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string" },
-                  "password": { "type": "string" },
-                  "fullname": { "type": "string" },
-                  "username": { "type": "string" },
-                  "age": { "type": "integer" },
-                  "gender": { "type": "string" },
-                  "country": { "type": "string" },
-                  "preferredLanguage": { "type": "string" },
-                  "height": { "type": "number", "format": "float" },
-                  "weight": { "type": "number", "format": "float" }
-                }
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "verificationCode": { "type": "number", "example": "1234" },
+                  "age": { "type": "integer", "example": 30 },
+                  "gender": { "type": "string", "example": "male" },
+                  "country": { "type": "string", "example": "USA" },
+                  "preferredLanguage": { "type": "string", "example": "English" },
+                  "height": { "type": "number", "format": "float", "example": 1.75 },
+                  "weight": { "type": "number", "format": "float", "example": 70 }
+                },
+                "required": ["email", "verificationCode"]
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "User created successfully." },
-          "400": { "description": "Error creating user, Bad Request." }
+          "201": { "description": "User verified and signed up successfully." },
+          "400": { "description": "Verification code expired, invalid, or missing fields." },
+          "500": { "description": "Internal server error."}
         }
       }
     },
@@ -167,7 +202,7 @@
     "/request-password-reset": {
       "post": {
         "summary": "Request a password reset",
-        "description": "Generates a password reset token and sends a password reset link to the user's email.",
+        "description": "Generates a password reset code and sends it to the user's email.",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -180,41 +215,24 @@
                     "type": "string",
                     "description": "The user's registered email address."
                   }
-                }
+                },
+                "required": ["email"]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Password reset link sent successfully." },
-          "400": { "description": "Error sending password reset link." }
+          "200": { "description": "Password reset code sent successfully." },
+          "400": { "description": "Invalid email address or error sending password reset code." },
+          "404": { "description": "User not found." },
+          "500": { "description": "Server error." }
         }
       }
     },
     "/reset-password": {
-      "get": {
-        "summary": "Renders the password reset form",
-        "description": "Displays the password reset form that takes the reset token sent to the user's email and allows the user to submit a new password.",
-        "tags": ["Authentication"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "token",
-            "schema": {
-              "type": "string",
-              "description": "The token used to verify the password request."
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": { "description": "Renders the reset password form" },
-          "400": { "description": "Token is missing or invalid" }
-        }
-      },
       "post": {
         "summary": "Reset the password",
-        "description": "Reset the user's password using the token.",
+        "description": "Reset the user's password using the reset code.",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -223,22 +241,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": {
+                  "email": {
                     "type": "string",
-                    "description": "The password reset token from the email."
+                    "description": "The user's registered email address."
+                  },
+                  "resetCode": {
+                    "type": "string",
+                    "description": "The 4-digit password reset code sent to the user's email."
                   },
                   "newPassword": {
                     "type": "string",
-                    "description": "The new password."
+                    "description": "The new password for the user."
                   }
-                }
+                },
+                "required": ["email", "resetCode", "newPassword"]
               }
             }
           }
         },
         "responses": {
           "200": { "description": "Password reset successfully." },
-          "400": { "description": "Invalid or expired token, or error resetting password." }
+          "400": { "description": "Invalid or expired code, or error resetting password." },
+          "404": { "description": "User not found." },
+          "500": { "description": "Server error." }
         }
       }
     },
@@ -510,16 +535,46 @@
                   "unit" : {
                     "type": "string",
                     "description": "The user's preferred unit for the height and weight values",
-                    "example": "metric"
+                    "example": "metric",
+                    "enum": ["metric", "imperial"]
+                  },
+                  "heightunit": {
+                    "type": "string",
+                    "description": "The unit for height (e.g., 'cm', 'm', 'in', 'ft')",
+                    "example": "cm",
+                    "enum": ["cm", "m", "in", "ft"]
+                  },
+                  "weightunit": {
+                    "type": "string",
+                    "description": "The unit for weight (e.g., 'kg', 'g', 'lbs', 'st')",
+                    "example": "kg",
+                    "enum": ["kg", "g", "lbs", "st"]
+                  },
+                  "age": {
+                    "type": "integer",
+                    "description": "The user's age in years",
+                    "example": 25
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "The user's gender",
+                    "example": "male",
+                    "enum": ["male", "female", "other"]
+                  },
+                  "country": {
+                    "type": "string",
+                    "description": "The user's country of residence",
+                    "example": "USA"
                   }
-                }
+                },
+                "required": ["height", "weight", "unit", "age", "gender", "country"]
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Successfully calculated and returned the user's BMI value",
+            "description": "Successfully calculated and returned the user's BMI value and category",
             "content": {
               "application/json": {
                 "schema": {

@@ -7,12 +7,12 @@ const BMIController = require('../controllers/bmiController');
 const router = express.Router();
 
 // authentication routes
+router.post('/verify-email', AuthController.verifyEmail);
 router.post('/signup', AuthController.signup);
 router.post('/login', AuthController.login);
 router.post('/refresh-token', AuthController.refreshToken);
 router.post('/logout', AuthController.logout);
 router.post('/request-password-reset', AuthController.requestPasswordReset);
-router.get('/reset-password', AuthController.Passwordreset);
 router.post('/reset-password', AuthController.resetPassword);
 
 // profile management routes

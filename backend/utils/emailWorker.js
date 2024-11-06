@@ -1,16 +1,15 @@
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 require('dotenv').config({ path: require('path').resolve(__dirname, '../', envFile) });
 
-const { Worker, Queue } = require('bullmq');
+const { Worker } = require('bullmq');
 const nodemailer = require('nodemailer');
 const redisClient = require('../config/redis');
 
 console.log('Connecting to Redis at:', process.env.REDIS_URL);
-// Create a worker to process the email queue
+
+// Function to create the transporter for sending emails
 function createTransporter() {
     return nodemailer.createTransport({
-        //host: process.env.MAILTRAP_HOST,
-        //port: process.env.MAILTRAP_PORT,
         service: 'Gmail',
         auth: {
             user: process.env.EMAIL_USERNAME,
@@ -19,51 +18,66 @@ function createTransporter() {
     });
 }
 
+// Email worker processing both password reset and verification email jobs
 const emailWorker = new Worker('email', async job => {
-    const { email, token, fullname } = job.data;
-
-    console.log('Processing job:', job.id, { email, fullname, token });
     const transporter = createTransporter();
-    // Create the reset URL
-    const PORT = process.env.PORT;
-    const resetUrl = process.env.NODE_ENV === 'production'
-  ? `https://${process.env.HOSTNAME}/reset-password?token=${token}`
-  : `http://${process.env.HOSTNAME}:${PORT}/reset-password?token=${token}`;
 
-    const mailOptions = {
-        from: process.env.EMAIL_USERNAME,
-        to: email,
-        subject: `Password Reset Request for ${fullname}`,
-        text: `Hello ${fullname}.\n\nYou requested a password reset.\n\nYour token for reset is: ${token}\n\nClick here to reset your password: ${resetUrl}.\nThis link expires in 30 minutes.`
-    };
+    if (job.name === 'send-password-reset-code') {
+        const { email, fullname, resetCode } = job.data;
 
-    try {
-        // Send the email
-        console.log('Sending email to:', email);
-        await transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
-        console.log('Password reset email sent');
-    } catch (error) {
-        console.error('Error sending email:', error);
-        throw error;
+        console.log('Processing password reset job:', job.id, { email, fullname, resetCode });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USERNAME,
+            to: email,
+            subject: `Password Reset Request for ${fullname}`,
+            text: `Hello ${fullname},\n\nYou requested a password reset.\n\nYour password reset code is: ${resetCode}.\nThis code expires in 10 minutes.\n\nIf you did not request this, please ignore this email.`
+        };
+
+        try {
+            console.log('Sending password reset email to:', email);
+            await transporter.sendMail(mailOptions);
+            console.log('Password reset email sent successfully.');
+        } catch (error) {
+            console.error('Error sending password reset email:', error);
+            throw error;
+        }
+    } else if (job.name === 'send-verification-email') {
+        const { email, fullname, verificationCode } = job.data;
+
+        console.log('Processing verification email job:', job.id, { email, fullname, verificationCode });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USERNAME,
+            to: email,
+            subject: `Email Verification for ${fullname}`,
+            text: `Hello ${fullname},\n\nYour email verification code is: ${verificationCode}.\nPlease enter this code to verify your email.\n\nThis code expires in 10 minutes.`
+        };
+
+        try {
+            console.log('Sending verification email to:', email);
+            await transporter.sendMail(mailOptions);
+            console.log('Verification email sent successfully.');
+        } catch (error) {
+            console.error('Error sending verification email:', error);
+            throw error;
+        }
+    } else {
+        console.error('Unknown job type:', job.name);
     }
 }, {
     connection: redisClient.client,
 });
 
+// Event listeners for worker events
 emailWorker.on('error', (error) => {
-    console.log('Email Queue error:', error);
+    console.error('Email Worker error:', error);
 });
 emailWorker.on('failed', (job, err) => {
     console.error('Job failed with error:', err);
 });
 emailWorker.on('completed', (job) => {
-    console.log('Job completed:', job.id);
+    console.log('Job completed successfully:', job.id);
 });
 
 console.log('Email Worker is running...');
