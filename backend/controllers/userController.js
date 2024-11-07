@@ -1,15 +1,14 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const User = require('../models/User');
-const { DatabaseError} = require('sequelize');
-const { error } = require('console');
+const { DatabaseError } = require('sequelize');
 
 class UserController {
     static async fetchUserProfile(req, res) {
         try {
-            const { userId } = req.user
+            const { userId } = req.user;
             const user = await User.findOne({ where: { id: userId } });
             if (!user) {
-                return res.status(404).json({ message: 'User not found', error: error.message });
+                return res.status(404).json({ message: 'User not found' });
             }
 
             return res.status(200).json({
@@ -25,8 +24,9 @@ class UserController {
                 created_at: user.createdAt
             });
         } catch (error) {
+            console.error('Error fetching user profile:', error);
             if (error instanceof DatabaseError) {
-                return res.status(500).json({ message: "Connection to the database caanot be established", error: error.message });
+                return res.status(500).json({ message: "Connection to the database cannot be established", error: error.message });
             }
             return res.status(500).json({ message: "User's details cannot be fetched at the moment", error: error.message });
         }
@@ -40,7 +40,7 @@ class UserController {
             
             const user = await User.findOne({ where: { id: userId } });
             if (!user) {
-                return res.status(404).json({ message: 'User not found', error: error.message });
+                return res.status(404).json({ message: 'User not found' });
             }
 
             if (fullname !== undefined) {
@@ -57,7 +57,7 @@ class UserController {
             }
             if (age !== undefined) {
                 if (isNaN(age) || age <= 0) {
-                    return res.status(400).json({ message: 'Invalid age provided. Age must be a positve number' });
+                    return res.status(400).json({ message: 'Invalid age provided. Age must be a positive number' });
                 }
                 user.age = age;
             }
@@ -74,16 +74,18 @@ class UserController {
                 user.country = country;
             }
             if (height !== undefined) {
-                if (isNaN(height) || typeof height !== 'number') {
-                    return res.status(400).json({ message: 'Height must be a valid float number' });
+                const parsedHeight = parseFloat(height);
+                if (isNaN(parsedHeight) || parsedHeight <= 0) {
+                    return res.status(400).json({ message: 'Height must be a valid positive number' });
                 }
-                user.height = parseFloat(height);
+                user.height = parsedHeight;
             }
             if (weight !== undefined) {
-                if (isNaN(weight) || typeof weight !== 'number') {
-                    return res.status(400).json({ message: 'Weight must be a valid float number' });
+                const parsedWeight = parseFloat(weight);
+                if (isNaN(parsedWeight) || parsedWeight <= 0) {
+                    return res.status(400).json({ message: 'Weight must be a valid positive number' });
                 }
-                user.weight = parseFloat(weight);
+                user.weight = parsedWeight;
             }
             if (preferredLanguage !== undefined) {
                 if (typeof preferredLanguage !== 'string') {
@@ -92,16 +94,7 @@ class UserController {
                 user.preferredLanguage = preferredLanguage;
             }
 
-            try {
-                await user.save();
-            } catch (error) {
-                console.error('Error saving user:', error);
-                
-                if (error instanceof DatabaseError) {
-                    return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
-                }
-                return res.status(500).json({ message: 'Internal server error' });
-            }
+            await user.save();
 
             return res.status(200).json({
                 message: 'Profile updated successfully',
@@ -119,6 +112,10 @@ class UserController {
                 }
             });
         } catch (error) {
+            console.error('Error updating profile:', error);
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message });
+            }
             return res.status(500).json({ message: "User's details cannot be updated at the moment", error: error.message });
         }
     }
@@ -128,8 +125,8 @@ class UserController {
             const { userId } = req.user;
 
             const user = await User.findOne({ where: { id: userId } });
-            if(!user) {
-                return res.status(404).json({ message: "User not found", error:error.message });
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
             }
 
             await user.destroy();
@@ -137,9 +134,8 @@ class UserController {
             return res.status(200).json({ message: "User profile and account deleted successfully" });
         } catch (error) {
             console.error('Error deleting user:', error);
-
             if (error instanceof DatabaseError) {
-                return res.status(500).json({ message: 'Error connecting to the database', error: error.message});
+                return res.status(500).json({ message: 'Error connecting to the database', error: error.message });
             }
             return res.status(500).json({ message: "User's account cannot be deleted at the moment", error: error.message });
         }
