@@ -19,7 +19,7 @@
     "dialectOptions": {
       "ssl": {
         "require": true,
-        "rejectedUnauthorized": false
+        "rejectUnauthorized": false
       }
     }
   }
