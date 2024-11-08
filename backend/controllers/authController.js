@@ -122,7 +122,7 @@ class AuthController {
             if (!user) {
                 return res.status(401).json({ message: 'User with inputted credentials cannot be found' });
             }
-            correctpassword = await bcrypt.compare(password, user.password);
+            const correctpassword = await bcrypt.compare(password, user.password);
             if (!correctpassword) {
                 return res.status(401).json({ message: `Incorrect password for ${user}` });
             }
