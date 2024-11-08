@@ -119,11 +119,11 @@ class AuthController {
         const { email, password } = req.body;
         try {
             const user = await User.findOne({ where: { email } });
-            if (!user || !(await bcrypt.compare(password, user.password))) {
+            if (!user) {
                 return res.status(401).json({ message: 'User with inputted credentials cannot be found' });
             }
-
-            if (user && !(await bcrypt.compare(password, user.password))) {
+            correctpassword = await bcrypt.compare(password, user.password);
+            if (!correctpassword) {
                 return res.status(401).json({ message: `Incorrect password for ${user}` });
             }
 
