@@ -124,7 +124,7 @@ class AuthController {
             }
             const correctpassword = await bcrypt.compare(password, user.password);
             if (!correctpassword) {
-                return res.status(401).json({ message: `Incorrect password for ${user}` });
+                return res.status(401).json({ message: `Incorrect password for ${user.email}` });
             }
 
             if (!process.env.JWT_SECRET) {
