@@ -123,6 +123,10 @@ class AuthController {
                 return res.status(401).json({ message: 'User with inputted credentials cannot be found' });
             }
 
+            if (user && !(await bcrypt.compare(password, user.password))) {
+                return res.status(401).json({ message: `Incorrect password for ${user}` });
+            }
+
             if (!process.env.JWT_SECRET) {
                 throw new Error('JWT_SECRET is not defined in the environment variables');
             }
