@@ -4,9 +4,10 @@ const User = require('../models/User');
 const { Op, DatabaseError} = require('sequelize');
 const { isEmail } = require('validator');
 const redisClient = require('../config/redis');
-const { SendPasswordResetEmail, SendVerificationEmail } = require('../utils/emailQueue');
+const EmailQueue = require('../utils/emailQueue');
 const { error } = require('console');
 const { randomInt } = require('crypto');
+const passport = require('../config/passport');
 
 class AuthController {
     static async verifyEmail(req, res) {
@@ -51,7 +52,7 @@ class AuthController {
             }
 
             const verificationCode = String(randomInt(1000, 9999)); // Generates a number between 1000 and 9999
-            await SendVerificationEmail(email, fullname, verificationCode); // Send verification email asynchronously via background worker
+            await EmailQueue.SendVerificationEmail(email, fullname, verificationCode); // Send verification email asynchronously via background worker
             // Store the verification data temporarily in Redis with a TTL of 10 minutes
             await redisClient.set(
                 `verify:${email}`,
@@ -225,7 +226,7 @@ class AuthController {
 
             const resetCode = randomInt(1000, 9999);
             await redisClient.set(`reset:${email}`, resetCode, 600);
-            await SendPasswordResetEmail(email, resetCode);
+            await EmailQueue.SendPasswordResetEmail(email, resetCode);
             
             res.status(200).json({ message: `Password reset code sent to ${email}` });
         } catch (error) {
@@ -282,6 +283,83 @@ class AuthController {
                 return res.status(500).json({ message: 'Database error', error: error.message });
             }
             res.status(500).json({ message: 'Error resetting password', error: error.message });
+        }
+    }
+
+    static async generateTokens(userId) {
+        const sessionToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        await redisClient.set(`sessionToken:${userId}`, sessionToken, 'EX', 3600);
+        await redisClient.set(`refreshToken:${userId}`, refreshToken, 'EX', 604800);
+        return { sessionToken, refreshToken };
+    }
+
+    static async googleAuth(req, res, next) {
+        passport.authenticate('goggle', { scope: ['profile', 'email'] })(req, res, next);
+    }
+
+    static async googleCallback(req, res, next) {
+        passport.authenticate('google', async (err, user) => {
+            if (err || !user) {
+                return res.redirect("/login");
+            }
+            try {
+                const tokens = await this.generateTokens(user.id);
+                res.json(tokens);
+            } catch (error) {
+                res.status(500).json({ error: "Error generating tokens", message: error.message });
+            }
+        })(req, res, next);
+    }
+
+    static async facebookAuth(req, res, next) {
+        passport.authenticate('facebook', { scope: ['email'] })(req, res, next);
+    }
+
+    static async facebookCallback(req, res, next) {
+        passport.authenticate('facebook', async (err, user) => {
+            if (err || !user) {
+                return res.redirect('/login');
+            }
+            try {
+                const tokens = await this.generateTokens(user.id);
+                res.json(tokens);
+            } catch (error) {
+                res.status(500).json({ error: "Error generating tokens", message: error.message });
+            }
+        })(req, res, next);
+    }
+
+    // Once Google or Facebook authentication succeeds, handle the password setting
+    static async setPassword(req, res) {
+        const { userId, tempPassword, password } = req.body;
+
+        try {
+            const storedTempPassword = await redisClient.get(`tempPassword:${userId}`);
+            if (!storedTempPassword || storedTempPassword !== tempPassword) {
+                return res.status(400).send({ error: 'Invalid or expired temporary password' });
+            }
+
+            const user = await User.findByPk(userId);
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            if (!user.socialLogin) {
+                return res.status(400).send({ error: "Invalid request. User already has his prefered password."})
+            }
+
+            // Hash and save the new  password
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await user.update({ password: hashedPassword, socialLogin: false });
+
+            // Clear temp password
+            await redisClient.del(`tempPassword:${userId}`);
+            res.status(200).json({ message: "Password successfully set!" });
+        } catch (error) {
+            if (error instanceof DatabaseError) {
+                return res.status(500).json({ message: 'Database error', error: error.message });
+            }
+            res.status(500).json({ error: "Failed to set password" });
         }
     }
 }

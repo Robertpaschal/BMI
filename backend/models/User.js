@@ -15,6 +15,14 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    socialLogin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    isSocialLogin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     fullname: {
         type: DataTypes.STRING,
         allowNull: false,
