@@ -7,7 +7,7 @@ const redisClient = require('../config/redis');
 const EmailQueue = require('../utils/emailQueue');
 const { error } = require('console');
 const { randomInt } = require('crypto');
-const passport = require('../config/passport');
+const { passport, generateTempPassword } = require('../config/passport');
 
 class AuthController {
     static async verifyEmail(req, res) {
@@ -295,7 +295,7 @@ class AuthController {
     }
 
     static async googleAuth(req, res, next) {
-        passport.authenticate('goggle', { scope: ['profile', 'email'] })(req, res, next);
+        passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
     }
 
     static async googleCallback(req, res, next) {
@@ -336,8 +336,35 @@ class AuthController {
 
         try {
             const storedTempPassword = await redisClient.get(`tempPassword:${userId}`);
-            if (!storedTempPassword || storedTempPassword !== tempPassword) {
-                return res.status(400).send({ error: 'Invalid or expired temporary password' });
+
+            // If there's no temporary password or it's expired, check the user's socialLogin status
+            if (!storedTempPassword) {
+                const user = await User.findByPk(userId);
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+                // Only allow generating a new temp password if the user is still in the social login process
+                if (!user.socialLogin) {
+                    return res.status(400).send({ error: "This user has already set their preferred password."});
+                }
+                else {
+                    // Generate and send a new temporary password
+                    try {
+                        const renewedTempPassword = await generateTempPassword(user.email, user.fullname);
+                        await user.update({ password: renewedTempPassword });
+                    } catch (error) {
+                        return res.status(500).send({ error: `Error encountered while sending a new temporary password to ${user.email}` });
+                    }
+                
+                    return res.status(400).json({ 
+                        error: "Your temporary password has expired, a new one has been sent to your email."
+                    });
+                }
+            }
+
+            // if the temp password exists and is valid, validate it with the user's input
+            if (storedTempPassword !== tempPassword) {
+                return res.status(400).send({ error: "Invalid temporary password" });
             }
 
             const user = await User.findByPk(userId);
@@ -347,7 +374,11 @@ class AuthController {
             if (!user.socialLogin) {
                 return res.status(400).send({ error: "Invalid request. User already has his prefered password."})
             }
-
+            // Ensure the new password is not the same as the temporary password
+            const isSameAsTempPassword = await bcrypt.compare(password, storedTempPassword);
+            if (isSameAsTempPassword) {
+                return res.status(400).send({ error: "You cannot use your temporary password as your actual password." });
+            }
             // Hash and save the new  password
             const hashedPassword = await bcrypt.hash(password, 10);
             await user.update({ password: hashedPassword, socialLogin: false });

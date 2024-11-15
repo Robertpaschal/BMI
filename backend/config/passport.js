@@ -49,12 +49,11 @@ async (sessionToken, refreshToken, profile, done) => {
 
         // Generate the temporary password before user creation
         const tempPassword = await generateTempPassword(emails[0].value, displayName);
-
         user = await User.create({
             email: emails[0].value,
             fullname: displayName,
             username: id,
-            age: ageRange || 18,
+            age: ageRange.max || 18,
             preferredLanguage: language || English,
             gender: gender || male,
             // get height and weight and take care of other values because none can be null
@@ -93,7 +92,7 @@ async (sessionToken, refreshToken, profile, done) => {
             email: emails[0].value,
             fullname: displayName,
             username: id,
-            age: ageRange || 18,
+            age: ageRange.max || 18,
             preferredLanguage: language || English,
             gender: gender || male,
             // get height and weight and take care of other values because none can be null
@@ -120,4 +119,4 @@ passport.deserializeUser(async (id, done) => {
     done(null, user);
 });
 
-module.exports = passport;
+module.exports = { passport, generateTempPassword };
