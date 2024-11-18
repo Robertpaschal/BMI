@@ -17,8 +17,6 @@ class UserController {
                 age: user.age,
                 gender: user.gender,
                 country: user.country,
-                height: user.height,
-                weight: user.weight,
                 preferredLanguage: user.preferredLanguage,
                 last_updated_at: user.updatedAt,
                 created_at: user.createdAt
@@ -33,7 +31,7 @@ class UserController {
     }
 
     static async updateProfile(req, res) {
-        const { fullname, username, age, gender, country, height, weight, preferredLanguage } = req.body;
+        const { fullname, username, age, gender, country, preferredLanguage } = req.body;
 
         try {
             const { userId } = req.user;
@@ -73,20 +71,6 @@ class UserController {
                 }
                 user.country = country;
             }
-            if (height !== undefined) {
-                const parsedHeight = parseFloat(height);
-                if (isNaN(parsedHeight) || parsedHeight <= 0) {
-                    return res.status(400).json({ message: 'Height must be a valid positive number' });
-                }
-                user.height = parsedHeight;
-            }
-            if (weight !== undefined) {
-                const parsedWeight = parseFloat(weight);
-                if (isNaN(parsedWeight) || parsedWeight <= 0) {
-                    return res.status(400).json({ message: 'Weight must be a valid positive number' });
-                }
-                user.weight = parsedWeight;
-            }
             if (preferredLanguage !== undefined) {
                 if (typeof preferredLanguage !== 'string') {
                     return res.status(400).json({ message: 'Preferred language must be a string' });
@@ -105,8 +89,6 @@ class UserController {
                     gender: user.gender,
                     country: user.country,
                     preferredLanguage: user.preferredLanguage,
-                    height: user.height,
-                    weight: user.weight,
                     last_updated_at: user.updatedAt,
                     created_at: user.createdAt
                 }

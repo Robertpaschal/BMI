@@ -48,14 +48,6 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    height: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    },
-    weight: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    },
 }, {
     timestamps: true,
     tableName: 'User',

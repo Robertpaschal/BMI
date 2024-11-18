@@ -70,7 +70,7 @@ class AuthController {
     }
 
     static async signup(req, res) {
-        const { email, verificationCode, age, gender, country, preferredLanguage, height, weight } = req.body;
+        const { email, verificationCode, age, gender, country, preferredLanguage } = req.body;
 
         if (!email || !verificationCode) {
             return res.status(400).json({ message: 'Email and verification code are required.' });
@@ -100,8 +100,6 @@ class AuthController {
                 gender,
                 country,
                 preferredLanguage,
-                height,
-                weight,
             });
 
             // Delete the verification code from the Redis after successful verification
@@ -332,14 +330,14 @@ class AuthController {
 
     // Once Google or Facebook authentication succeeds, handle the password setting
     static async setPassword(req, res) {
-        const { userId, tempPassword, password } = req.body;
+        const { email, tempPassword, password } = req.body;
 
         try {
-            const storedTempPassword = await redisClient.get(`tempPassword:${userId}`);
+            const storedTempPassword = await redisClient.get(`tempPassword:${email}`);
 
             // If there's no temporary password or it's expired, check the user's socialLogin status
             if (!storedTempPassword) {
-                const user = await User.findByPk(userId);
+                const user = await User.findOne({ where: { email } });
                 if (!user) {
                     return res.status(404).json({ error: "User not found" });
                 }
@@ -367,7 +365,7 @@ class AuthController {
                 return res.status(400).send({ error: "Invalid temporary password" });
             }
 
-            const user = await User.findByPk(userId);
+            const user = await User.findOne({ where: { email } });
             if (!user) {
                 return res.status(404).json({ error: "User not found" });
             }
@@ -384,7 +382,7 @@ class AuthController {
             await user.update({ password: hashedPassword, socialLogin: false });
 
             // Clear temp password
-            await redisClient.del(`tempPassword:${userId}`);
+            await redisClient.del(`tempPassword:${email}`);
             res.status(200).json({ message: "Password successfully set!" });
         } catch (error) {
             if (error instanceof DatabaseError) {

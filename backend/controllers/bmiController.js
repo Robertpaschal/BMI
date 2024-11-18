@@ -61,8 +61,6 @@ class BMIController {
                 category,
             });
 
-            user.height = parsedHeight;
-            user.weight = parsedWeight;
             user.age = age;
             user.country = country;
             user.gender = gender;

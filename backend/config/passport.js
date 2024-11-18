@@ -28,7 +28,7 @@ async function generateTempPassword(email, fullname) {
         return tempPassword;
     } catch (error) {
         console.error(`Error generating temp password for ${email}:`, error);
-        throw new Error('Error generating temporary password. Please try again later.');
+        throw new Error(`Error generating temporary password for ${email}. Please try again later.`);
     }
 }
 
@@ -42,23 +42,20 @@ async (sessionToken, refreshToken, profile, done) => {
     try {
         const { emails, displayName, id, ageRange, language, gender } = profile;
 
-        let user = await User.findOne({ where: { email: emails[0].value } });
-        if (user) {
+        const existingUser = await User.findOne({ where: { email: emails[0].value } });
+        if (existingUser) {
             return done(null, false, { message: "This email is already associated with an existing account. Please use a different login method." });
         }
-
         // Generate the temporary password before user creation
         const tempPassword = await generateTempPassword(emails[0].value, displayName);
-        user = await User.create({
+
+        const user = await User.create({
             email: emails[0].value,
             fullname: displayName,
             username: id,
             age: ageRange.max || 18,
             preferredLanguage: language || English,
             gender: gender || male,
-            // get height and weight and take care of other values because none can be null
-            height: height || 170,
-            weight: weight || 70,
             socialLogin: true,
             isSocialLogin: true,
             password: tempPassword
@@ -75,29 +72,25 @@ passport.use(new FacebookStrategy({
     clientID: process.env.FACEBOOK_CLIENT_ID,
     clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
     callbackURL: "/auth/facebook/callback",
-    profileFields: ['id', 'emails', 'name', 'gender', 'ageRange', 'language']
 },
 async (sessionToken, refreshToken, profile, done) => {
     try {
         const { emails, displayName, id, ageRange, language, gender } = profile;
 
-        let user = await User.findOne({ where: { email: emails[0].value } });
-        if (user) {
+        const existingUser = await User.findOne({ where: { email: emails[0].value } });
+        if (existingUser) {
             return done(null, false, { message: "This email is already associated with an existing account. Please use a different login method."});
         }
 
         const tempPassword = await generateTempPassword(emails[0].value, displayName);
 
-        user = await User.create({
+        const user = await User.create({
             email: emails[0].value,
             fullname: displayName,
             username: id,
             age: ageRange.max || 18,
             preferredLanguage: language || English,
             gender: gender || male,
-            // get height and weight and take care of other values because none can be null
-            height: height || 170,
-            weight: weight || 70,
             socialLogin: true,
             isSocialLogin: true,
             password: tempPassword
@@ -114,8 +107,8 @@ passport.serializeUser((user, done) => {
     done(null, user.id);
 });
 
-passport.deserializeUser(async (id, done) => {
-    const user = await User.findByPk(id);
+passport.deserializeUser(async (email, done) => {
+    const user = await User.findOne({ where: { email } });
     done(null, user);
 });
 

@@ -6,6 +6,13 @@ const BMIController = require('../controllers/bmiController');
 
 const router = express.Router();
 
+// OAuth login routes
+router.get('/auth/google', AuthController.googleAuth);
+router.get('/auth/google/callback', AuthController.googleCallback);
+router.get('/auth/facebook', AuthController.facebookAuth);
+router.get('/auth/facebook/callback', AuthController.facebookCallback);
+router.post('/set-password', AuthController.setPassword);
+
 // authentication routes
 router.post('/verify-email', AuthController.verifyEmail);
 router.post('/signup', AuthController.signup);
@@ -14,13 +21,6 @@ router.post('/refresh-token', AuthController.refreshToken);
 router.post('/logout', AuthController.logout);
 router.post('/request-password-reset', AuthController.requestPasswordReset);
 router.post('/reset-password', AuthController.resetPassword);
-
-// OAuth login routes
-router.get('/auth/google', AuthController.googleAuth);
-router.get('/auth/google/callback', AuthController.googleCallback);
-router.get('/auth/facebook', AuthController.facebookAuth);
-router.get('/auth/facebook/callback', AuthController.facebookCallback);
-router.post('/set-password', AuthController.setPassword);
 
 // profile management routes
 router.get('/profile', AuthMiddleware.verifyToken, UserController.fetchUserProfile);
