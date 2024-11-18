@@ -97,6 +97,14 @@ class BMIController {
                 offset: (page - 1) * limit
             });
 
+            // If no records are found for the user
+            if (bmiHistory.count === 0) {
+                return res.status(200).json({
+                    message: "User doesn't have any BMI records yet",
+                    data: []
+                });
+            }
+
             if (page > Math.ceil(bmiHistory.count / limit)) {
                 return res.status(404).json({ message: 'Requested page exceeds available data' });
             }
