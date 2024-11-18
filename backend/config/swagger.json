@@ -135,7 +135,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "userId": { "type": "string", "example": "12345" },
+                  "email": { "type": "string", "example": "user@example.com" },
                   "tempPassword": { "type": "string", "example": "TempPass123!" },
                   "password": { "type": "string", "example": "NewPassword123!"}
                 },
