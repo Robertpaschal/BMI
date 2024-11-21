@@ -60,7 +60,7 @@ async (sessionToken, refreshToken, profile, done) => {
             isSocialLogin: true,
             password: tempPassword
         });
-        done(null, user);
+        done(null, user, { message: "User created successfully." });
     } catch (error) {
         done(error, null);
     }
@@ -95,7 +95,7 @@ async (sessionToken, refreshToken, profile, done) => {
             isSocialLogin: true,
             password: tempPassword
         });
-        done(null, user);
+        done(null, user, { message: "User created successfully" });
     } catch (error) {
         done(error, null);
     }
